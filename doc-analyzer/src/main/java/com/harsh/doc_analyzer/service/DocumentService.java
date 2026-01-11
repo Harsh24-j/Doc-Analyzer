@@ -21,25 +21,21 @@ public class DocumentService {
     private DocumentRepository documentRepository;
 
     public String analyzeDocument(MultipartFile file) {
-        try {
-            // 1. PDF se text nikalo
-            String text = pdfService.extractText(file);
-            
-            // 2. Gemini AI se summary mangwao
-            String summary = aiService.getSummary(text);
-            
-            // 3. Database mein save karne ke liye object banao
+    try {
+        String text = pdfService.extractText(file);
+        String summary = aiService.getSummary(text);
+        
+        // --- YE CHECK ADD KARO ---
+        if (summary != null && !summary.startsWith("Error") && !summary.contains("failed")) {
             DocumentMetadata metadata = new DocumentMetadata();
             metadata.setFileName(file.getOriginalFilename());
             metadata.setSummary(summary);
             metadata.setUploadDate(LocalDateTime.now());
-            
-            // 4. Finally Database mein SAVE karo
             documentRepository.save(metadata);
-            
-            return summary;
-        } catch (Exception e) {
-            return "Error analyzing document: " + e.getMessage();
         }
+        return summary;
+    } catch (Exception e) {
+        return "Error: " + e.getMessage();
     }
+}
 }
