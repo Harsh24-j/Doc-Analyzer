@@ -14,7 +14,6 @@ public class AiService {
 
     private final RestTemplate restTemplate;
 
-    // Injecting custom configuration properties for Gemini API
     @Autowired
     private GeminiConfigProperties geminiConfig;
 
@@ -22,40 +21,35 @@ public class AiService {
         this.restTemplate = restTemplate;
     }
 
-    /**
-     * Generates a summary for the given text using Google Gemini AI.
-     * Caches the result to reduce API latency for identical requests.
-     * @param text The extracted document text to be summarized.
-     * @return Summarized text in 5 points.
-     */
     @Cacheable(value = "summaries", key = "#text.hashCode()")
     public String getSummary(String text) {
         
-        // Debugging logs to verify configuration values
         System.out.println("DEBUG: Fetching URL -> " + geminiConfig.getApiUrl());
-        System.out.println("DEBUG: Fetching Key -> " + geminiConfig.getApiKey());
 
-        // Safety Check: Ensure API URL is configured correctly
         if (geminiConfig.getApiUrl() == null || geminiConfig.getApiUrl().isEmpty()) {
             return "Error: 'gemini.api-url' not found in application.properties!";
         }
 
         String url = geminiConfig.getApiUrl() + "?key=" + geminiConfig.getApiKey();
         
-        // Preparing the request payload for Gemini API
+        // --- PAYLOAD MODIFICATION START ---
+        // Humne ab "model" field add kiya hai aur HashMap use kiya hai taaki structure sahi rahe
         Map<String, Object> textPart = Map.of("text", "Summarize this document in 5 points: " + text);
         Map<String, Object> parts = Map.of("parts", List.of(textPart));
-        Map<String, Object> contents = Map.of("contents", List.of(parts));
+        
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("contents", List.of(parts));
+        payload.put("model", "models/gemini-1.5-flash"); // Added model field here
+        // --- PAYLOAD MODIFICATION END ---
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(contents, headers);
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
 
         try {
-            System.out.println("AiService: Calling Gemini API...");
+            System.out.println("AiService: Calling Gemini API with model: models/gemini-1.5-flash...");
             
-            // Type-safe API call using ParameterizedTypeReference
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                 url, 
                 HttpMethod.POST, 
@@ -65,7 +59,6 @@ public class AiService {
             
             if (response.getBody() == null) return "Error: API response is empty.";
 
-            // Logic to parse the complex JSON structure of Gemini API response
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> candidates = (List<Map<String, Object>>) response.getBody().get("candidates");
             Map<String, Object> firstCandidate = candidates.get(0);
