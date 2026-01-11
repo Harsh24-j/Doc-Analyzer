@@ -13,9 +13,9 @@ public class DocumentMetadata {
 
     private String fileName;
 
-    @Column(columnDefinition = "TEXT")
-    private String summary;
-
+    @Lob
+@Column(columnDefinition = "TEXT") 
+private String summary;
     private LocalDateTime uploadDate;
 
     // Default Constructor

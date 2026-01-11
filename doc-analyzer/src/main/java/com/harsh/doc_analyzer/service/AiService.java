@@ -20,15 +20,9 @@ public class AiService {
         this.restTemplate = restTemplate;
     }
 
-    /**
-     * Extracts a summary from the given text using Gemini 1.5 Flash.
-     * Uses the v1beta endpoint for maximum compatibility.
-     */
     public String getSummary(String text) {
-        // Base URL (v1beta) + API Key
         String url = geminiConfig.getApiUrl() + "?key=" + geminiConfig.getApiKey();
         
-        // PAYLOAD: Sirf 'contents' bhej rahe hain kyunki model URL mein defined hai
         Map<String, Object> textPart = Map.of("text", "Summarize this document in 5 bullet points: " + text);
         Map<String, Object> parts = Map.of("parts", List.of(textPart));
         Map<String, Object> contents = Map.of("contents", List.of(parts));
@@ -41,7 +35,6 @@ public class AiService {
         try {
             System.out.println("AiService: Initiating Gemini API call...");
             
-            // Type-safe call using ParameterizedTypeReference
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                 url, 
                 HttpMethod.POST, 
@@ -49,23 +42,30 @@ public class AiService {
                 new ParameterizedTypeReference<Map<String, Object>>() {}
             );
             
-            if (response.getBody() == null) return "Error: API response is empty.";
+            // --- UPDATED SAFETY CHECK START ---
+            if (response.getBody() == null || !response.getBody().containsKey("candidates")) {
+                System.err.println("AiService Error: No candidates found in response.");
+                return "The Gemini API did not return any valid candidates. Perhaps the API Key or URL is incorrect.";
+            }
+            // --- UPDATED SAFETY CHECK END ---
 
-            // Deep parsing the Gemini JSON structure
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> candidates = (List<Map<String, Object>>) response.getBody().get("candidates");
             
+            if (candidates == null || candidates.isEmpty()) {
+                return "Error: Gemini API candidates list is empty.";
+            }
+
             @SuppressWarnings("unchecked")
             Map<String, Object> content = (Map<String, Object>) candidates.get(0).get("content");
             
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> resParts = (List<Map<String, Object>>) content.get("parts");
             
-            System.out.println("AiService: Summary received successfully.");
             return resParts.get(0).get("text").toString();
 
         } catch (Exception e) {
-            System.err.println("AiService Error Details: " + e.getMessage());
+            System.err.println("AiService Exception: " + e.getMessage());
             return "Gemini API call failed: " + e.getMessage();
         }
     }
