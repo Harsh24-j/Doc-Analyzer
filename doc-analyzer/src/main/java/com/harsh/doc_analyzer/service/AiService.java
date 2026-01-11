@@ -24,23 +24,13 @@ public class AiService {
     @Cacheable(value = "summaries", key = "#text.hashCode()")
     public String getSummary(String text) {
         
-        System.out.println("DEBUG: Fetching URL -> " + geminiConfig.getApiUrl());
-
-        if (geminiConfig.getApiUrl() == null || geminiConfig.getApiUrl().isEmpty()) {
-            return "Error: 'gemini.api-url' not found in application.properties!";
-        }
-
+        // URL with Stable v1 Version
         String url = geminiConfig.getApiUrl() + "?key=" + geminiConfig.getApiKey();
         
-        // --- PAYLOAD MODIFICATION START ---
-        // Humne ab "model" field add kiya hai aur HashMap use kiya hai taaki structure sahi rahe
-        Map<String, Object> textPart = Map.of("text", "Summarize this document in 5 points: " + text);
+        // Simplified Payload: Only 'contents' are needed since model is in the URL
+        Map<String, Object> textPart = Map.of("text", "Summarize this document in 5 bullet points: " + text);
         Map<String, Object> parts = Map.of("parts", List.of(textPart));
-        
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("contents", List.of(parts));
-        payload.put("model", "models/gemini-1.5-flash"); // Added model field here
-        // --- PAYLOAD MODIFICATION END ---
+        Map<String, Object> payload = Map.of("contents", List.of(parts));
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -48,7 +38,7 @@ public class AiService {
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
 
         try {
-            System.out.println("AiService: Calling Gemini API with model: models/gemini-1.5-flash...");
+            System.out.println("AiService: Calling Gemini API at: " + geminiConfig.getApiUrl());
             
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                 url, 
@@ -59,19 +49,12 @@ public class AiService {
             
             if (response.getBody() == null) return "Error: API response is empty.";
 
-            @SuppressWarnings("unchecked")
+            // Parsing the nested JSON response
             List<Map<String, Object>> candidates = (List<Map<String, Object>>) response.getBody().get("candidates");
-            Map<String, Object> firstCandidate = candidates.get(0);
-            
-            @SuppressWarnings("unchecked")
-            Map<String, Object> content = (Map<String, Object>) firstCandidate.get("content");
-            
-            @SuppressWarnings("unchecked")
+            Map<String, Object> content = (Map<String, Object>) candidates.get(0).get("content");
             List<Map<String, Object>> resParts = (List<Map<String, Object>>) content.get("parts");
-            Map<String, Object> firstPart = resParts.get(0);
             
-            System.out.println("AiService: Summary generated successfully!");
-            return firstPart.get("text").toString();
+            return resParts.get(0).get("text").toString();
 
         } catch (Exception e) {
             System.err.println("AiService Error: " + e.getMessage());
