@@ -2,7 +2,6 @@ package com.harsh.doc_analyzer.service;
 
 import com.harsh.doc_analyzer.config.GeminiConfigProperties;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.*;
@@ -21,24 +20,23 @@ public class AiService {
         this.restTemplate = restTemplate;
     }
 
-    @Cacheable(value = "summaries", key = "#text.hashCode()")
     public String getSummary(String text) {
-        
-        // URL with Stable v1 Version
+        // Base URL + API Key
         String url = geminiConfig.getApiUrl() + "?key=" + geminiConfig.getApiKey();
         
-        // Simplified Payload: Only 'contents' are needed since model is in the URL
+        // --- CORRECT PAYLOAD (No 'model' field here) ---
         Map<String, Object> textPart = Map.of("text", "Summarize this document in 5 bullet points: " + text);
         Map<String, Object> parts = Map.of("parts", List.of(textPart));
-        Map<String, Object> payload = Map.of("contents", List.of(parts));
+        Map<String, Object> contents = Map.of("contents", List.of(parts));
+        // -----------------------------------------------
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(contents, headers);
 
         try {
-            System.out.println("AiService: Calling Gemini API at: " + geminiConfig.getApiUrl());
+            System.out.println("AiService: Calling Gemini API...");
             
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                 url, 
@@ -49,7 +47,7 @@ public class AiService {
             
             if (response.getBody() == null) return "Error: API response is empty.";
 
-            // Parsing the nested JSON response
+            // Parsing logic
             List<Map<String, Object>> candidates = (List<Map<String, Object>>) response.getBody().get("candidates");
             Map<String, Object> content = (Map<String, Object>) candidates.get(0).get("content");
             List<Map<String, Object>> resParts = (List<Map<String, Object>>) content.get("parts");
