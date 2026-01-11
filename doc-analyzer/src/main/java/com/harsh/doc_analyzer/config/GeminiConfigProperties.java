@@ -4,36 +4,34 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Configuration class to map Gemini API properties from application.properties.
- * Uses Type-safe configuration properties for better maintainability.
+ * Configuration class to map Gemini API properties.
+ * Prefix 'gemini.api' matches 'gemini.api.url' and 'gemini.api.key'.
  */
 @Configuration
-@ConfigurationProperties(prefix = "gemini")
+@ConfigurationProperties(prefix = "gemini.api")
 public class GeminiConfigProperties {
     
-    // Maps to 'gemini.api-url' in application.properties
-    private String apiUrl; 
+    // Maps to 'gemini.api.url' in properties or 'GEMINI_API_URL' in Railway
+    private String url; 
     
-    // Maps to 'gemini.api-key' in application.properties
-    private String apiKey; 
+    // Maps to 'gemini.api.key' in properties or 'GEMINI_API_KEY' in Railway
+    private String key; 
 
-    /**
-     * Manual Getters and Setters are required for Spring Boot 
-     * to perform successful property mapping.
-     */
+    // Getters
     public String getApiUrl() {
-        return apiUrl;
-    }
-
-    public void setApiUrl(String apiUrl) {
-        this.apiUrl = apiUrl;
+        return url;
     }
 
     public String getApiKey() {
-        return apiKey;
+        return key;
     }
 
-    public void setApiKey(String apiKey) {
-        this.apiKey = apiKey;
+    // Setters (Mandatory for Spring to inject values)
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
     }
 }
