@@ -11,19 +11,33 @@ public class PdfService {
 
     /**
      * Extracts text content from the uploaded PDF file.
-     * @param file The PDF file uploaded via Multipart request.
-     * @return Extracted text as a String.
-     * @throws IOException If there is an error during file reading.
+     * Includes validation to prevent NullPointerExceptions.
      */
     public String extractText(MultipartFile file) throws IOException {
         
+        // --- VALIDATION START ---
+        // Agar Postman mein 'file' select nahi ki, toh ye error throw karega
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("File is missing or empty! Please select a valid PDF in Postman.");
+        }
+        // --- VALIDATION END ---
+
         // Loads the PDF document from the input stream of the uploaded file
         try (PDDocument document = PDDocument.load(file.getInputStream())) {
             
             PDFTextStripper stripper = new PDFTextStripper();
             
-            // Extracts and returns the entire text content in String format
-            return stripper.getText(document);
+            // Extracts the text content
+            String extractedText = stripper.getText(document);
+            
+            // Safety check: Agar PDF scan image hai aur text nahi nikal paya
+            if (extractedText == null || extractedText.trim().isEmpty()) {
+                return "Warning: No readable text found in the PDF.";
+            }
+            
+            return extractedText;
+        } catch (IOException e) {
+            throw new IOException("Error processing PDF file: " + e.getMessage());
         }
     }
 }
