@@ -1,103 +1,130 @@
-# 📄 Doc-Analyzer: AI-Powered Document Summarizer
+# Doc-Analyzer 📄
 
-**Doc-Analyzer** is a production-ready Spring Boot application that automates the process of extracting and summarizing content from PDF documents using the **Google Gemini 1.5 Flash AI** model. It features a robust backend to handle large files, extract text, and store metadata in a **PostgreSQL** database.
+**AI-powered PDF document summarization service built with Java and Spring Boot.**
 
-### 🌐 Live Deployment
+Doc-Analyzer extracts text from PDF files, sends the extracted content to Google Gemini for summarization, and stores document metadata and summaries in PostgreSQL.
 
-**API Endpoint:** [https://doc-analyzer-production-10c3.up.railway.app/api/docs/analyze](https://doc-analyzer-production-10c3.up.railway.app/api/docs/analyze)
+## 🌐 Deployment
 
----
+**API:** https://doc-analyzer-production-10c3.up.railway.app/api/docs/analyze
 
-## 🚩 Problem Statement
+## ✨ What It Does
 
-Reading through lengthy PDF documents (research papers, legal contracts, reports) is time-consuming and inefficient. Key challenges include:
+- Extracts PDF text using Apache PDFBox
+- Generates concise summaries using Google Gemini 1.5 Flash
+- Stores document metadata and summaries in PostgreSQL
+- Validates uploaded files and handles processing/API failures gracefully
+- Runs in a constrained cloud environment with JVM memory tuning
 
-* **Manual Effort:** Manually extracting key points from 50+ page documents.
-* **Information Overload:** Difficulty in identifying the core message quickly.
-* **Scalability:** Existing tools often struggle with memory management when processing large files in a cloud environment.
+## 🏗️ Architecture
 
----
-
-## ✅ The Solution
-
-I built a scalable backend service that provides an end-to-end automated pipeline:
-
-1. **Text Extraction:** Leverages **Apache PDFBox** to convert raw PDF data into structured text.
-2. **AI Orchestration:** Integrated **Google Gemini API** (v1beta) to generate concise 5-point summaries.
-3. **Resilient Architecture:** Implemented memory-efficient JVM settings (`-Xmx256m`) to prevent crashes on cloud containers like **Railway**.
-4. **Persistent Storage:** Metadata and summaries are stored in a **PostgreSQL** database using JPA/Hibernate for future retrieval.
-
----
+```text
+PDF Upload
+    |
+    v
+Spring Boot REST API
+    |
+    +----> PDFBox ------> Extracted Text
+    |                         |
+    |                         v
+    |                    Gemini API
+    |                         |
+    v                         v
+Document Service ------> Summary
+    |
+    v
+PostgreSQL
+```
 
 ## 🛠️ Tech Stack
 
 | Component | Technology |
 | --- | --- |
-| **Language** | Java 17 |
-| **Framework** | Spring Boot 3.x |
-| **AI Model** | Google Gemini 1.5 Flash |
-| **Database** | PostgreSQL |
-| **PDF Library** | Apache PDFBox |
-| **Deployment** | Railway (Cloud) |
-| **Build Tool** | Maven |
+| Language | Java 17 |
+| Framework | Spring Boot 3.x |
+| AI | Google Gemini 1.5 Flash |
+| Database | PostgreSQL |
+| PDF Processing | Apache PDFBox |
+| Persistence | JPA / Hibernate |
+| Build Tool | Maven |
+| Deployment | Railway |
 
----
+## 🔧 Engineering Highlights
 
-📂 Project Structure
+### Memory-efficient cloud deployment
 
+The application is configured with a JVM heap limit (`-Xmx256m`) to operate reliably within a constrained cloud container and avoid out-of-memory failures during document processing.
+
+### Secure configuration
+
+API credentials are supplied through environment variables rather than being stored in source code. The repository also uses `.gitignore` to prevent local secrets and configuration files from being committed.
+
+### Large text persistence
+
+AI-generated summaries and extracted document content can be large, so the persistence layer uses PostgreSQL text storage through JPA/Hibernate rather than relying on a small fixed-length database column.
+
+### Error handling and validation
+
+The service validates uploaded documents and handles empty files and AI/API failures with controlled responses instead of allowing unhandled exceptions to terminate request processing.
+
+## 📁 Project Structure
+
+```text
 doc-analyzer/
 ├── src/
 │   ├── main/
 │   │   ├── java/com/harsh/doc_analyzer/
-│   │   │   ├── config/           # API and RestTemplate Configurations
-│   │   │   │   ├── GeminiConfigProperties.java
-│   │   │   │   └── RestTemplateConfig.java
-│   │   │   ├── controller/       # REST API Endpoints
-│   │   │   │   └── DocumentController.java
-│   │   │   ├── model/            # JPA Entities (PostgreSQL Schema)
-│   │   │   │   └── DocumentMetadata.java
-│   │   │   ├── repository/       # Data Access Layer
-│   │   │   │   └── DocumentRepository.java
-│   │   │   └── service/          # Business Logic & AI Integration
-│   │   │       ├── AiService.java
-│   │   │       ├── PdfService.java
-│   │   │       └── DocumentService.java
-│   │   └── resources/
-│   │       ├── application.properties # App Config & Environment Placeholders
-│   │       └── static/           # (Optional) Frontend files
-│   └── test/                     # Unit and Integration Tests
-├── .gitignore                    # Prevents sensitive files from being pushed
-├── pom.xml                       # Project Dependencies (Maven)
-└── README.md                     # Project Documentation
+│   │   │   ├── config/          # Gemini and HTTP client configuration
+│   │   │   ├── controller/      # REST endpoints
+│   │   │   ├── model/           # JPA entities
+│   │   │   ├── repository/      # Data access layer
+│   │   │   └── service/         # PDF processing, AI integration, business logic
+│   │   └── resources/            # Application configuration
+│   └── test/                     # Unit and integration tests
+├── .gitignore
+├── pom.xml
+└── README.md
+```
 
----
+## 🚀 API Usage
 
-## 🚀 Key Features & Optimizations
+**Endpoint**
 
-* **Environment Variable Security:** Sensitive API keys are managed via Railway environment variables, preventing exposure in the source code.
-* **Dynamic Column Mapping:** Uses `@Lob` and `columnDefinition = "TEXT"` in Hibernate to handle large AI-generated responses without data truncation.
-* **Graceful Error Handling:** Includes a validation layer to check for empty files and API connection issues, returning clear feedback instead of server crashes.
-* **Optimized Memory:** Fine-tuned JVM heap memory settings to run efficiently on low-resource cloud instances.
+`POST /api/docs/analyze`
 
----
+**Request**
 
-## 🔮 Future Scope & Enhancements (Sudhaar)
+- Content-Type: `multipart/form-data`
+- Form field: `file`
+- Input: PDF document
 
-To make this project even more powerful, I plan to implement:
+**Example**
 
-* **OCR Support:** Integrating Tesseract OCR to read text from scanned PDF images (non-selectable text).
-* **Multi-language Support:** Enabling summaries in Hindi, Spanish, and other regional languages.
-* **User Authentication:** Adding Spring Security with JWT so users can maintain a history of their uploaded documents.
-* **Chat-with-PDF:** Utilizing RAG (Retrieval-Augmented Generation) to allow users to ask specific questions about the document instead of just a summary.
+```bash
+curl -X POST \
+  https://doc-analyzer-production-10c3.up.railway.app/api/docs/analyze \
+  -F "file=@sample.pdf"
+```
 
----
+## 🧪 Testing
 
-## 📖 How to Test
+The project includes unit and integration tests under `src/test`.
 
-1. **Method:** `POST`
-2. **URL:** `/api/docs/analyze`
-3. **Body:** `form-data`
-4. **Key:** `file` (Select a PDF file)
-5. **Status:** `200 OK`
+Before publishing additional performance or coverage figures, document the exact test command, coverage tool, test environment, and workload used so the results are reproducible.
 
----
+## 🔐 Configuration
+
+Set the required AI and database configuration through environment variables. Do not commit API keys, passwords, or other secrets to the repository.
+
+## 🔮 Future Improvements
+
+- OCR support for scanned PDFs
+- Multi-language summaries
+- Spring Security with JWT authentication
+- Retrieval-Augmented Generation for chat with documents
+
+## 👨‍💻 Author
+
+**Harsh Shrivastava**
+
+[GitHub](https://github.com/Harsh24-j) · [LinkedIn](https://linkedin.com/in/harshshrivastava24)
